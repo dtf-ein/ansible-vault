@@ -1,0 +1,93 @@
+---
+
+- set_fact:
+    vault_zip: vault_{{ vault_version }}_{{ linux_arch }}.zip
+
+- name: Download Vault binary
+  get_url:
+    url: https://releases.hashicorp.com/vault/{{ vault_version }}/{{ vault_zip }}
+    dest: /tmp/{{ vault_zip }}
+    checksum: "{{ vault_checksum }}"
+    mode: 0440
+
+- name: Unzip the Vault binary
+  unarchive:
+    src: /tmp/{{ vault_zip }}
+    dest: /usr/local/bin
+    remote_src: yes
+
+- name: Cleanup the downloaded zip
+  file:
+    path: /tmp/{{ vault_zip }}
+    state: absent
+
+- name: Create Vault service definition
+  copy:
+    src: vault.service
+    dest: /etc/systemd/system/vault.service
+
+- name: Create "vault" group
+  group:
+    name: vault
+    state: present
+
+- name: Create "vault" user
+  user:
+    name: vault
+    group: vault
+    home: /etc/vault.d
+    shell: /bin/false
+    state: present
+    system: true
+
+- name: Make Vault config and cert directories
+  file:
+    path: "{{ item }}"
+    state: directory
+    owner: vault
+    group: vault
+    mode: 0740
+  loop:
+    - /etc/vault.d
+    - /etc/vault.d/cert
+
+- name: Copy vault.hcl configuration
+  template:
+    src: vault.hcl.j2
+    dest: /etc/vault.d/vault.hcl
+    owner: vault
+    group: vault
+    mode: 0740
+
+- name: Copy Vault certificates
+  copy:
+    src: "{{ item }}"
+    dest: /etc/vault.d/cert/
+    owner: vault
+    group: vault
+    mode: 0400
+  loop:
+    - "{{ vault_tls_cert_file }}"
+    - "{{ vault_tls_key_file }}"
+
+- name: Create Vault file storage path
+  file:
+    path: "{{ vault_storage_file_path }}"
+    state: directory
+    owner: vault
+    group: vault
+    mode: 0740
+
+- name: Make sure Vault trusts its own certificate.
+  copy:
+    src: "{{ vault_tls_cert_file }}"
+    dest: /usr/local/share/ca-certificates
+  when: vault_tls_update_trusted_certs == true
+  notify:
+    - update trusted certs
+
+- name: Start and enable the Vault service
+  systemd:
+    name: vault
+    state: started
+    enabled: yes

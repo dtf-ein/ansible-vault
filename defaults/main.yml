@@ -1,0 +1,14 @@
+---
+# Controls which version of Vault is downloaded
+# These come from the "SHA256 checksum file" on the https://www.vaultproject.io/downloads.html page
+linux_arch: linux_amd64
+vault_version: "1.2.4"
+vault_checksum: "sha256:3c09b773030b99b063208a0433946b348f14794e46c8193e5a4d2eefaa64bac1"
+
+# The path for the Filesystem storage backend
+vault_storage_file_path: "/mnt/vault/data"
+
+# These are self-signed certificates for a local test environment and should be replaced with valid certs
+vault_tls_cert_file: localhost.crt
+vault_tls_key_file: localhost.key
+vault_tls_update_trusted_certs: true

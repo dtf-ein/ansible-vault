@@ -1,0 +1,11 @@
+listener "tcp" {
+  address       = "0.0.0.0:8200"
+  tls_cert_file = "/etc/vault.d/cert/{{ vault_tls_cert_file }}"
+  tls_key_file  = "/etc/vault.d/cert/{{ vault_tls_key_file }}"
+}
+
+storage "file" {
+  path = "{{ vault_storage_file_path }}"
+}
+
+ui = true
